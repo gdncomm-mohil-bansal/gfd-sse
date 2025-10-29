@@ -62,7 +62,7 @@
               <span class="item-info">
                 {{ item.productName }} <span class="item-qty">× {{ item.quantity }}</span>
               </span>
-              <span class="item-price">${{ formatPrice(item.subtotal) }}</span>
+              <span class="item-price">Rp {{ formatPrice(item.subtotal) }}</span>
             </div>
           </div>
         </div>
@@ -71,19 +71,19 @@
         <div class="pricing-section">
           <div class="price-row">
             <span>Subtotal</span>
-            <span>${{ formatPrice(totalAmount) }}</span>
+            <span>Rp {{ formatPrice(displaySubtotal) }}</span>
           </div>
           <div class="price-row" v-if="discountAmount > 0">
             <span class="discount-label">Discount</span>
-            <span class="discount-value">-${{ formatPrice(discountAmount) }}</span>
+            <span class="discount-value">-Rp {{ formatPrice(discountAmount) }}</span>
           </div>
           <div class="price-row" v-if="taxAmount > 0">
             <span>Tax</span>
-            <span>${{ formatPrice(taxAmount) }}</span>
+            <span>Rp {{ formatPrice(taxAmount) }}</span>
           </div>
           <div class="price-row total">
             <span>Total</span>
-            <span>${{ formatPrice(finalTotal) }}</span>
+            <span>Rp {{ formatPrice(finalTotal) }}</span>
           </div>
         </div>
 
@@ -121,9 +121,10 @@ import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useGFDStore } from '@/stores/gfdStore'
 import type { EventType } from '@/types'
+import { formatRupiah } from '@/utils/currency'
 
 const gfdStore = useGFDStore()
-const { cartItems, totalAmount, lastEventType, checkoutData } = storeToRefs(gfdStore)
+const { cartItems, totalAmount, lastEventType, checkoutData, calculatedSubtotal } = storeToRefs(gfdStore)
 
 const eventType = computed((): EventType | null => lastEventType.value)
 
@@ -146,19 +147,33 @@ const statusMessage = computed(() => {
 })
 
 const discountAmount = computed((): number => {
-  return checkoutData.value?.discount || 0
+  if (checkoutData.value?.discount && typeof checkoutData.value.discount === 'number') {
+    return checkoutData.value.discount
+  }
+  return 0
 })
 
 const taxAmount = computed((): number => {
-  return checkoutData.value?.tax || 0
+  if (checkoutData.value?.tax && typeof checkoutData.value.tax === 'number') {
+    return checkoutData.value.tax
+  }
+  return 0
+})
+
+// Use totalAmount if available, otherwise calculate from subtotal
+const displaySubtotal = computed((): number => {
+  if (totalAmount.value > 0) {
+    return totalAmount.value
+  }
+  return calculatedSubtotal.value
 })
 
 const finalTotal = computed((): number => {
-  return totalAmount.value - discountAmount.value + taxAmount.value
+  return displaySubtotal.value - discountAmount.value + taxAmount.value
 })
 
 const formatPrice = (price: number): string => {
-  return price.toFixed(2)
+  return formatRupiah(price)
 }
 </script>
 

@@ -10,13 +10,13 @@
       <h3 class="product-name">{{ item.productName }}</h3>
       <div class="product-meta">
         <span class="quantity-text">Qty: {{ item.quantity }}</span>
-        <span class="price-each">${{ formatPrice(item.price) }} each</span>
+        <span class="price-each">Rp {{ formatPrice(item.price) }} each</span>
       </div>
     </div>
 
     <!-- Subtotal -->
     <div class="item-subtotal">
-      <span class="subtotal-amount">${{ formatPrice(item.subtotal) }}</span>
+      <span class="subtotal-amount">Rp {{ formatPrice(item.subtotal) }}</span>
     </div>
   </div>
 </template>
@@ -24,6 +24,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { CartItem } from '@/types'
+import { formatRupiah } from '@/utils/currency'
 
 interface Props {
   item: CartItem
@@ -32,7 +33,7 @@ interface Props {
 const props = defineProps<Props>()
 
 const formatPrice = (price: number): string => {
-  return price.toFixed(2)
+  return formatRupiah(price)
 }
 
 // Generate a product image based on product ID

@@ -89,6 +89,13 @@
               :item="item"
             />
           </TransitionGroup>
+
+          <!-- Voucher & Discount Cards -->
+          <VoucherDiscountCard
+            :voucher="appliedVoucher"
+            :discount="appliedDiscount"
+            :totalSavings="totalSavings"
+          />
         </div>
 
         <!-- Cart summary -->
@@ -101,12 +108,16 @@
           </div>
           <div class="summary-row">
             <span>Subtotal</span>
-            <span class="value">${{ formatPrice(totalAmount) }}</span>
+            <span class="value">Rp {{ formatPrice(originalAmount > 0 ? originalAmount : calculatedSubtotal) }}</span>
+          </div>
+          <div class="summary-row savings" v-if="totalSavings > 0">
+            <span>Total Savings</span>
+            <span class="value savings-value">-Rp {{ formatPrice(totalSavings) }}</span>
           </div>
           <div class="summary-divider"></div>
           <div class="summary-row total">
             <span>Total Amount</span>
-            <span class="value">${{ formatPrice(totalAmount) }}</span>
+            <span class="value">Rp {{ formatPrice(totalAmount) }}</span>
           </div>
           <div class="summary-note">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -124,16 +135,29 @@
 import { storeToRefs } from 'pinia'
 import { useGFDStore } from '@/stores/gfdStore'
 import CartItemCard from './CartItemCard.vue'
+import VoucherDiscountCard from './VoucherDiscountCard.vue'
+import { formatRupiah } from '@/utils/currency'
 
 const gfdStore = useGFDStore()
-const { cartItems, totalAmount, totalItems, userId, lastMessage } = storeToRefs(gfdStore)
+const {
+  cartItems,
+  totalAmount,
+  totalItems,
+  userId,
+  lastMessage,
+  appliedVoucher,
+  appliedDiscount,
+  totalSavings,
+  originalAmount,
+  calculatedSubtotal
+} = storeToRefs(gfdStore)
 
 const handleDisconnect = () => {
   gfdStore.disconnect()
 }
 
 const formatPrice = (price: number): string => {
-  return price.toFixed(2)
+  return formatRupiah(price)
 }
 </script>
 
@@ -430,6 +454,16 @@ const formatPrice = (price: number): string => {
 
 .summary-row.total .value {
   color: #10b981;
+}
+
+.summary-row.savings {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.savings-value {
+  color: #10b981 !important;
+  font-weight: 700;
 }
 
 .value {
