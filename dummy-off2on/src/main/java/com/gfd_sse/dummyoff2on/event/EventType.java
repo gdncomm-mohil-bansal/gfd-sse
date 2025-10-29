@@ -1,0 +1,11 @@
+package com.gfd_sse.dummyoff2on.event;
+
+public enum EventType {
+    PRODUCT_VIEWED,
+    CART_ITEM_ADDED,
+    CART_ITEM_REMOVED,
+    CART_UPDATED,
+    CHECKOUT_INITIATED,
+    CHECKOUT_COMPLETED,
+    CHECKOUT_FAILED
+}

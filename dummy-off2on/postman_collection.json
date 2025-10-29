@@ -1,0 +1,455 @@
+{
+  "info": {
+    "name": "Off2On Service API - Updated",
+    "description": "API collection for Off2On service - Front-liner e-commerce backend with OTP generation for GFD monitoring",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "off2on-v2"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "user123",
+      "type": "string"
+    },
+    {
+      "key": "otp",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health & Status",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "OTP Management (Front-liner generates OTP)",
+      "description": "Front-liner PWA generates OTP to share with GFD for monitoring",
+      "item": [
+        {
+          "name": "Generate OTP for Front-liner Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"OTP generated successfully\", function () {",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.otp).to.exist;",
+                  "    pm.expect(jsonData.otp).to.have.lengthOf(6);",
+                  "});",
+                  "",
+                  "if (jsonData.success && jsonData.otp) {",
+                  "    pm.collectionVariables.set(\"otp\", jsonData.otp);",
+                  "    console.log(\"✅ OTP Generated: \" + jsonData.otp);",
+                  "    console.log(\"📋 Share this OTP with GFD to monitor this session\");",
+                  "    console.log(\"⏰ Expires at: \" + new Date(jsonData.expiresAt));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"deviceInfo\": \"Front-liner iPhone 15 Pro\",\n    \"sessionId\": \"session-abc-123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/otp/generate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "otp", "generate"]
+            },
+            "description": "Front-liner generates OTP to share with GFD for session monitoring. OTP is stored in Redis with 5-minute TTL."
+          }
+        },
+        {
+          "name": "Check if OTP Exists",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/otp/exists/{{otp}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "otp", "exists", "{{otp}}"]
+            },
+            "description": "Check if OTP exists in Redis (for debugging/testing)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Get All Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/products",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products"]
+            }
+          }
+        },
+        {
+          "name": "Get Product By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/products/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Products By Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/products/category/Electronics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", "category", "Electronics"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cart Operations",
+      "item": [
+        {
+          "name": "Add Product to Cart",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"Product added successfully\", function () {",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "console.log(\"🛒 Product added to cart\");",
+                  "console.log(\"📢 Event published to Redis: CART_ITEM_ADDED\");",
+                  "console.log(\"👁️  GFD should receive this event via SSE\");"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"productId\": 1,\n    \"quantity\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/cart/add",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cart", "add"]
+            },
+            "description": "Add product to cart. Publishes CART_ITEM_ADDED event to Redis."
+          }
+        },
+        {
+          "name": "Add Another Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"productId\": 2,\n    \"quantity\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/cart/add",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cart", "add"]
+            }
+          }
+        },
+        {
+          "name": "Get Cart",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/cart/{{userId}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cart", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Checkout Cart",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"Checkout successful\", function () {",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.orderId).to.exist;",
+                  "});",
+                  "",
+                  "console.log(\"✅ Checkout completed\");",
+                  "console.log(\"📢 Event published to Redis: CHECKOUT_COMPLETED\");",
+                  "console.log(\"👁️  GFD should receive this event via SSE\");"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"paymentMethod\": \"credit_card\",\n    \"shippingAddress\": \"123 Main St, San Francisco, CA 94102\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/cart/checkout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cart", "checkout"]
+            },
+            "description": "Checkout cart. Publishes CHECKOUT_COMPLETED event to Redis."
+          }
+        },
+        {
+          "name": "Clear Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/cart/{{userId}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cart", "{{userId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "E2E Test - Front-liner Flow",
+      "description": "Complete flow: Generate OTP → Add to cart → Checkout → Events published to Redis",
+      "item": [
+        {
+          "name": "Step 1: Generate OTP (Share with GFD)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"✅ Step 1: OTP Generated\", function () {",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.otp).to.exist;",
+                  "});",
+                  "",
+                  "if (jsonData.success && jsonData.otp) {",
+                  "    pm.collectionVariables.set(\"otp\", jsonData.otp);",
+                  "    console.log(\"=====================================\");",
+                  "    console.log(\"✅ OTP GENERATED: \" + jsonData.otp);",
+                  "    console.log(\"=====================================\");",
+                  "    console.log(\"📋 Next Steps:\");",
+                  "    console.log(\"1. Copy this OTP: \" + jsonData.otp);",
+                  "    console.log(\"2. Open dummy-off2on-redis Postman collection\");",
+                  "    console.log(\"3. Run 'E2E Test - GFD Flow' with this OTP\");",
+                  "    console.log(\"4. Come back here and continue with Step 2\");",
+                  "    console.log(\"=====================================\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"deviceInfo\": \"E2E Test - Front-liner\",\n    \"sessionId\": \"e2e-session-001\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/otp/generate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "otp", "generate"]
+            }
+          }
+        },
+        {
+          "name": "Step 2: Add Product to Cart (triggers event)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"✅ Step 2: Product Added to Cart\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "console.log(\"🛒 Product added - CART_ITEM_ADDED event published to Redis\");",
+                  "console.log(\"👁️  Check GFD SSE stream for the event\");"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"productId\": 1,\n    \"quantity\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/cart/add",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cart", "add"]
+            }
+          }
+        },
+        {
+          "name": "Step 3: Add Another Product (triggers event)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"✅ Step 3: Another Product Added\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "console.log(\"🛒 Another product added - CART_ITEM_ADDED event published\");"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"productId\": 3,\n    \"quantity\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/cart/add",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cart", "add"]
+            }
+          }
+        },
+        {
+          "name": "Step 4: Checkout (triggers event)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"✅ Step 4: Checkout Completed\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.orderId).to.exist;",
+                  "});",
+                  "",
+                  "console.log(\"=====================================\");",
+                  "console.log(\"🎉 E2E TEST COMPLETE!\");",
+                  "console.log(\"=====================================\");",
+                  "console.log(\"✅ OTP Generated and stored in Redis\");",
+                  "console.log(\"✅ Cart events published to Redis\");",
+                  "console.log(\"✅ Checkout event published to Redis\");",
+                  "console.log(\"👁️  GFD should have received all events via SSE\");",
+                  "console.log(\"=====================================\");"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/cart/checkout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cart", "checkout"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
