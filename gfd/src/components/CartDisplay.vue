@@ -18,9 +18,9 @@
             />
           </svg>
         </div>
-        <div>
-          <h1>Your Cart</h1>
-          <p class="session-id">Session: {{ userId }}</p>
+        <div class="store-text">
+          <h1>Shopping Cart</h1>
+          <p class="session-id">Session ID: {{ userId }}</p>
         </div>
       </div>
 
@@ -33,7 +33,7 @@
             d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
           />
         </svg>
-        Disconnect
+        <span class="disconnect-text">Disconnect</span>
       </button>
     </div>
 
@@ -41,9 +41,12 @@
     <div class="status-bar">
       <div class="status-badge connected">
         <span class="pulse"></span>
-        Connected
+        <span>Live Updates Active</span>
       </div>
       <div v-if="lastMessage" class="last-message">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="message-icon">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
         {{ lastMessage }}
       </div>
     </div>
@@ -63,12 +66,17 @@
               stroke-linecap="round"
               stroke-linejoin="round"
               stroke-width="2"
-              d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+              d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
             />
           </svg>
         </div>
-        <h2>Your cart is empty</h2>
-        <p>Items added by the cashier will appear here</p>
+        <h2>Your Cart is Empty</h2>
+        <p>Waiting for items from the cashier...</p>
+        <div class="loading-dots">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
       </div>
 
       <!-- Cart items -->
@@ -85,17 +93,26 @@
 
         <!-- Cart summary -->
         <div class="cart-summary">
+          <h3 class="summary-title">Order Summary</h3>
+          <div class="summary-divider"></div>
           <div class="summary-row">
-            <span>Items</span>
+            <span>Total Items</span>
             <span class="value">{{ totalItems }}</span>
           </div>
-          <div class="summary-row subtotal">
+          <div class="summary-row">
             <span>Subtotal</span>
             <span class="value">${{ formatPrice(totalAmount) }}</span>
           </div>
+          <div class="summary-divider"></div>
           <div class="summary-row total">
-            <span>Total</span>
+            <span>Total Amount</span>
             <span class="value">${{ formatPrice(totalAmount) }}</span>
+          </div>
+          <div class="summary-note">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Prices are updated in real-time</span>
           </div>
         </div>
       </div>
@@ -128,11 +145,12 @@ const formatPrice = (price: number): string => {
 
 .header {
   background: white;
-  padding: 20px 24px;
+  padding: 24px 32px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .store-info {
@@ -142,32 +160,35 @@ const formatPrice = (price: number): string => {
 }
 
 .store-logo {
-  width: 56px;
-  height: 56px;
+  width: 60px;
+  height: 60px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
 }
 
 .store-logo svg {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   color: white;
 }
 
-.store-info h1 {
-  font-size: 24px;
+.store-text h1 {
+  font-size: 26px;
   font-weight: 700;
-  color: #1a202c;
+  color: #111827;
   margin: 0 0 4px;
+  letter-spacing: -0.5px;
 }
 
 .session-id {
-  font-size: 14px;
-  color: #718096;
+  font-size: 13px;
+  color: #9ca3af;
   margin: 0;
+  font-weight: 500;
 }
 
 .disconnect-button {
@@ -176,70 +197,94 @@ const formatPrice = (price: number): string => {
   gap: 8px;
   padding: 10px 20px;
   background: white;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  color: #4a5568;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  color: #6b7280;
   font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s ease;
 }
 
 .disconnect-button svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 .disconnect-button:hover {
-  border-color: #cbd5e0;
-  background: #f7fafc;
+  border-color: #d1d5db;
+  background: #f9fafb;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.disconnect-button:active {
+  transform: translateY(0);
 }
 
 .status-bar {
-  background: white;
-  padding: 12px 24px;
+  background: linear-gradient(to bottom, #fafbfc 0%, #ffffff 100%);
+  padding: 14px 32px;
   display: flex;
   align-items: center;
   gap: 16px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .status-badge {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
-  border-radius: 20px;
+  padding: 8px 16px;
+  border-radius: 24px;
   font-size: 13px;
   font-weight: 600;
+  letter-spacing: 0.3px;
 }
 
 .status-badge.connected {
-  background: #c6f6d5;
-  color: #22543d;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #065f46;
+  border: 1px solid #a7f3d0;
 }
 
 .pulse {
   width: 8px;
   height: 8px;
-  background: #48bb78;
+  background: #10b981;
   border-radius: 50%;
   animation: pulse 2s infinite;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
 }
 
 @keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
   }
   50% {
-    opacity: 0.5;
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
   }
 }
 
 .last-message {
-  font-size: 14px;
-  color: #4a5568;
-  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #6b7280;
+  padding: 6px 14px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.message-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 .content {
@@ -250,39 +295,77 @@ const formatPrice = (price: number): string => {
 
 .empty-cart {
   background: white;
-  border-radius: 16px;
-  padding: 60px 40px;
+  border-radius: 20px;
+  padding: 80px 40px;
   text-align: center;
+  border: 2px dashed #e5e7eb;
 }
 
 .empty-icon {
-  width: 120px;
-  height: 120px;
-  background: #f7fafc;
+  width: 140px;
+  height: 140px;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 24px;
+  margin: 0 auto 28px;
+  border: 3px solid #f9fafb;
 }
 
 .empty-icon svg {
-  width: 60px;
-  height: 60px;
-  color: #cbd5e0;
+  width: 70px;
+  height: 70px;
+  color: #9ca3af;
 }
 
 .empty-cart h2 {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
-  color: #2d3748;
-  margin: 0 0 8px;
+  color: #111827;
+  margin: 0 0 12px;
+  letter-spacing: -0.5px;
 }
 
 .empty-cart p {
   font-size: 16px;
-  color: #718096;
-  margin: 0;
+  color: #6b7280;
+  margin: 0 0 24px;
+}
+
+.loading-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.loading-dots span {
+  width: 10px;
+  height: 10px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.loading-dots span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes bounce {
+  0%,
+  80%,
+  100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .cart-items-container {
@@ -305,41 +388,72 @@ const formatPrice = (price: number): string => {
 
 .cart-summary {
   background: white;
-  border-radius: 16px;
-  padding: 24px;
+  border-radius: 20px;
+  padding: 28px;
   height: fit-content;
   position: sticky;
   top: 24px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #f0f0f0;
+}
+
+.summary-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 16px;
+  letter-spacing: -0.3px;
+}
+
+.summary-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, #e5e7eb, transparent);
+  margin: 16px 0;
 }
 
 .summary-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 0;
-  font-size: 16px;
-  color: #4a5568;
-}
-
-.summary-row.subtotal {
-  border-top: 1px solid #e2e8f0;
-  margin-top: 8px;
-  padding-top: 20px;
-  font-weight: 600;
+  padding: 10px 0;
+  font-size: 15px;
+  color: #6b7280;
 }
 
 .summary-row.total {
   font-size: 24px;
   font-weight: 700;
-  color: #1a202c;
-  border-top: 2px solid #e2e8f0;
-  margin-top: 8px;
-  padding-top: 20px;
+  color: #111827;
+  padding: 16px 0 0;
+  margin-top: 4px;
+}
+
+.summary-row.total .value {
+  color: #10b981;
 }
 
 .value {
   font-weight: 600;
+  color: #374151;
+}
+
+.summary-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 12px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 10px;
+  font-size: 13px;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.summary-note svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 /* List transition animations */

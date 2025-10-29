@@ -62,6 +62,45 @@ export const useGFDStore = defineStore('gfd', () => {
     // Update cart data based on event (only if not null)
     if (event.cartItems !== null && event.cartItems !== undefined) {
       cartItems.value = event.cartItems
+    } else if (
+      event.eventType === 'CART_ITEM_ADDED' ||
+      event.eventType === 'CART_UPDATED'
+    ) {
+      // WORKAROUND: If cartItems is null but we have metadata with item info,
+      // try to reconstruct a basic cart item from metadata
+      console.warn('Received cart event with null cartItems, attempting to reconstruct from metadata')
+
+      if (event.metadata && event.totalItems && event.totalAmount) {
+        // Create a placeholder item from metadata
+        const placeholderItem = {
+          productId: event.metadata.productId || 0,
+          productName: event.metadata.productName || event.metadata.itemSku || 'Unknown Item',
+          price: event.metadata.price || (event.totalAmount / event.totalItems),
+          quantity: event.metadata.quantity || event.totalItems,
+          subtotal: event.totalAmount
+        }
+
+        // If we already have items, try to merge intelligently
+        if (cartItems.value.length > 0) {
+          // Find existing item
+          const existingIndex = cartItems.value.findIndex(
+            item => item.productId === placeholderItem.productId
+          )
+
+          if (existingIndex >= 0) {
+            // Update existing item
+            cartItems.value[existingIndex] = placeholderItem
+          } else {
+            // Add new item
+            cartItems.value.push(placeholderItem)
+          }
+        } else {
+          // First item
+          cartItems.value = [placeholderItem]
+        }
+
+        console.log('Reconstructed cart item from metadata:', placeholderItem)
+      }
     }
 
     if (event.totalAmount !== null && event.totalAmount !== undefined) {

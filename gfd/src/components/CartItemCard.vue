@@ -1,24 +1,22 @@
 <template>
   <div class="cart-item-card">
-    <div class="item-image">
-      <img :src="productImage" :alt="item.productName" />
+    <!-- Product Image -->
+    <div class="item-image-container">
+      <img :src="productImage" :alt="item.productName" class="product-image" />
     </div>
 
-    <div class="item-details">
-      <h3 class="item-name">{{ item.productName }}</h3>
-      <p class="item-price">${{ formatPrice(item.price) }} each</p>
-    </div>
-
-    <div class="item-quantity">
-      <div class="quantity-badge">
-        <span class="qty-label">Qty</span>
-        <span class="qty-value">{{ item.quantity }}</span>
+    <!-- Product Details -->
+    <div class="item-info">
+      <h3 class="product-name">{{ item.productName }}</h3>
+      <div class="product-meta">
+        <span class="quantity-text">Qty: {{ item.quantity }}</span>
+        <span class="price-each">${{ formatPrice(item.price) }} each</span>
       </div>
     </div>
 
+    <!-- Subtotal -->
     <div class="item-subtotal">
-      <p class="subtotal-label">Subtotal</p>
-      <p class="subtotal-value">${{ formatPrice(item.subtotal) }}</p>
+      <span class="subtotal-amount">${{ formatPrice(item.subtotal) }}</span>
     </div>
   </div>
 </template>
@@ -58,139 +56,176 @@ const productImage = computed(() => {
 <style scoped>
 .cart-item-card {
   background: white;
-  border-radius: 12px;
-  padding: 20px;
-  display: grid;
-  grid-template-columns: 100px 1fr auto auto;
-  gap: 20px;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
   align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s;
-  animation: slideIn 0.5s ease-out;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  animation: slideIn 0.4s ease-out;
+  border: 1px solid #f0f0f0;
 }
 
 @keyframes slideIn {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateX(-20px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateX(0);
   }
 }
 
 .cart-item-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  border-color: #e0e0e0;
 }
 
-.item-image {
-  width: 100px;
-  height: 100px;
-  border-radius: 8px;
+/* Product Image */
+.item-image-container {
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
   overflow: hidden;
-  background: #f7fafc;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 2px solid #f8f9fa;
 }
 
-.item-image img {
+.product-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.3s ease;
 }
 
-.item-details {
+.cart-item-card:hover .product-image {
+  transform: scale(1.05);
+}
+
+/* Product Info */
+.item-info {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  min-width: 0;
 }
 
-.item-name {
-  font-size: 18px;
+.product-name {
+  font-size: 16px;
   font-weight: 600;
-  color: #1a202c;
+  color: #1a1a1a;
   margin: 0;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
-.item-price {
-  font-size: 14px;
-  color: #718096;
-  margin: 0;
-}
-
-.item-quantity {
+.product-meta {
   display: flex;
   align-items: center;
+  gap: 12px;
+  font-size: 14px;
 }
 
-.quantity-badge {
+.quantity-text {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 12px 20px;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  min-width: 80px;
-}
-
-.qty-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  opacity: 0.9;
-}
-
-.qty-value {
-  font-size: 24px;
-  font-weight: 700;
-}
-
-.item-subtotal {
-  text-align: right;
-  min-width: 120px;
-}
-
-.subtotal-label {
+  border-radius: 20px;
+  font-weight: 600;
   font-size: 13px;
-  color: #718096;
-  margin: 0 0 4px;
+  letter-spacing: 0.3px;
 }
 
-.subtotal-value {
-  font-size: 22px;
+.price-each {
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Subtotal */
+.item-subtotal {
+  flex-shrink: 0;
+  text-align: right;
+  padding-left: 16px;
+}
+
+.subtotal-amount {
+  font-size: 20px;
   font-weight: 700;
-  color: #2d3748;
-  margin: 0;
+  color: #10b981;
+  display: block;
+  white-space: nowrap;
 }
 
+/* Responsive Design */
 @media (max-width: 768px) {
   .cart-item-card {
-    grid-template-columns: 80px 1fr;
-    grid-template-rows: auto auto;
-    gap: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
   }
 
-  .item-image {
-    width: 80px;
-    height: 80px;
+  .item-image-container {
+    width: 70px;
+    height: 70px;
   }
 
-  .item-details {
-    grid-column: 2;
+  .item-info {
+    flex: 1;
+    min-width: calc(100% - 86px);
   }
 
-  .item-quantity {
-    grid-column: 1;
+  .product-name {
+    font-size: 15px;
+  }
+
+  .product-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
   }
 
   .item-subtotal {
-    grid-column: 2;
-    text-align: left;
+    width: 100%;
+    text-align: right;
+    padding-left: 0;
+    padding-top: 8px;
+    border-top: 1px solid #f0f0f0;
+  }
+
+  .subtotal-amount {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .cart-item-card {
+    padding: 12px;
+  }
+
+  .item-image-container {
+    width: 60px;
+    height: 60px;
+  }
+
+  .product-name {
+    font-size: 14px;
+  }
+
+  .subtotal-amount {
+    font-size: 16px;
   }
 }
 </style>

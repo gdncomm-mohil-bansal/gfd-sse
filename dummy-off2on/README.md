@@ -52,7 +52,7 @@ Update `src/main/resources/application.properties` to configure:
 
 ```properties
 # Server port
-server.port=8080
+server.port=8089
 
 # Redis configuration
 spring.data.redis.host=localhost
