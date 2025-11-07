@@ -1,0 +1,342 @@
+{
+	"info": {
+		"_postman_id": "replica-service-12345",
+		"name": "Dummy Off2On Redis Replica Service",
+		"description": "API collection for testing the Replica service - demonstrates SSE behavior across multiple pods.\n\n⚠️ **Important**: This is a testing/demonstration service, NOT for production use.\n\n## Purpose\nThis service demonstrates why SSE events cannot cross pods without Redis Pub/Sub.\n\n## Server\n- **Port**: 9082\n- **Base URL**: http://localhost:9082\n\n## Key Concepts\n1. **Same-Pod Communication**: Works ✅ - Events reach clients when SSE and API are on the same pod\n2. **Cross-Pod Communication**: Fails ❌ - Events cannot reach clients on different pods without message broker\n\n## Testing Scenarios\n\n### Scenario 1: Same-Pod (Works)\n1. Use \"Connect SSE\" to establish connection to this pod\n2. Use \"Trigger Checkout Event\" to send event\n3. Result: Event reaches the client ✅\n\n### Scenario 2: Cross-Pod (Fails)\n1. Connect to main service (port 8081)\n2. Use \"Trigger Checkout Event\" on this pod (9082)\n3. Result: Event does NOT reach client ❌\n\n## Documentation\nSee CROSS_POD_TESTING_GUIDE.md for detailed testing instructions.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "SSE Connection",
+			"item": [
+				{
+					"name": "Connect SSE",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Content-Type is text/event-stream\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\", \"text/event-stream\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "text/event-stream",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/replica/connect?userId={{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"replica",
+								"connect"
+							],
+							"query": [
+								{
+									"key": "userId",
+									"value": "{{user_id}}",
+									"description": "User ID for SSE connection"
+								}
+							]
+						},
+						"description": "Establish SSE connection to the replica pod.\n\n**Note**: This is for testing only. In production, use the main service with OTP authentication.\n\n**Response**: Opens an SSE stream that sends:\n1. CONNECTION_ESTABLISHED event immediately\n2. Any subsequent events triggered for this userId on THIS pod\n\n**Testing**:\n- Use Postman's \"Send\" button (NOT \"Send and Download\")\n- Keep the request open to receive events\n- Use other requests to trigger events"
+					},
+					"response": []
+				}
+			],
+			"description": "SSE connection endpoints for establishing and managing event streams."
+		},
+		{
+			"name": "Event Triggers",
+			"item": [
+				{
+					"name": "Trigger Checkout Event",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is JSON\", function () {",
+									"    pm.response.to.be.json;",
+									"});",
+									"",
+									"const jsonData = pm.response.json();",
+									"",
+									"pm.test(\"Response has success field\", function () {",
+									"    pm.expect(jsonData).to.have.property('success');",
+									"});",
+									"",
+									"if (jsonData.success) {",
+									"    pm.test(\"Event sent successfully - User connected to this pod\", function () {",
+									"        pm.expect(jsonData.message).to.include('Event sent successfully');",
+									"    });",
+									"} else {",
+									"    pm.test(\"Event NOT sent - User not connected to this pod\", function () {",
+									"        pm.expect(jsonData.message).to.include('Cannot send event');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/replica/checkout/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"replica",
+								"checkout",
+								"{{user_id}}"
+							]
+						},
+						"description": "Trigger a checkout event for testing.\n\n**Important**: This endpoint can ONLY send events to clients connected to THIS pod.\n\n**Success Scenario**:\n- User is connected to THIS pod (9082)\n- Event is sent successfully ✅\n- Response: `{\"success\": true}`\n\n**Failure Scenario**:\n- User is connected to a DIFFERENT pod (8081)\n- Event CANNOT be sent ❌\n- Response: `{\"success\": false, \"message\": \"Cannot send event - User not connected to this pod\"}`\n\n**Testing Cross-Pod Behavior**:\n1. Connect to main service (port 8081)\n2. Trigger event from this replica (port 9082)\n3. Observe that event does NOT reach the client\n4. This demonstrates why Redis Pub/Sub is necessary!"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints to trigger test events for demonstration purposes."
+		},
+		{
+			"name": "Connection Management",
+			"item": [
+				{
+					"name": "Check Connection Status",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const jsonData = pm.response.json();",
+									"",
+									"pm.test(\"Response has success field\", function () {",
+									"    pm.expect(jsonData).to.have.property('success');",
+									"});",
+									"",
+									"pm.test(\"Response has message field\", function () {",
+									"    pm.expect(jsonData).to.have.property('message');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/replica/status/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"replica",
+								"status",
+								"{{user_id}}"
+							]
+						},
+						"description": "Check if a specific user is connected to THIS replica pod.\n\n**Response**:\n- If connected: `{\"success\": true, \"message\": \"Connected to THIS replica pod\"}`\n- If not connected: `{\"success\": true, \"message\": \"NOT connected to this replica pod\"}`\n\n**Use Case**:\n- Verify which pod has a user's SSE connection\n- Debug cross-pod event delivery issues\n- Understand pod-specific connection state"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Connection Count",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const jsonData = pm.response.json();",
+									"",
+									"pm.test(\"Response has success field\", function () {",
+									"    pm.expect(jsonData).to.have.property('success');",
+									"    pm.expect(jsonData.success).to.be.true;",
+									"});",
+									"",
+									"pm.test(\"Response has data field with count\", function () {",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    pm.expect(jsonData.data).to.be.a('number');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/replica/connections/count",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"replica",
+								"connections",
+								"count"
+							]
+						},
+						"description": "Get the number of active SSE connections on THIS replica pod.\n\n**Response**:\n```json\n{\n  \"success\": true,\n  \"message\": \"Active connections on REPLICA pod\",\n  \"data\": 5,\n  \"timestamp\": 1234567890\n}\n```\n\n**Use Case**:\n- Monitor active connections per pod\n- Understand load distribution\n- Verify connection cleanup"
+					},
+					"response": []
+				},
+				{
+					"name": "Disconnect User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response contains success message\", function () {",
+									"    pm.expect(pm.response.text()).to.include('successfully');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/replica/disconnect/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"replica",
+								"disconnect",
+								"{{user_id}}"
+							]
+						},
+						"description": "Disconnect a user's SSE connection from THIS replica pod.\n\n**Response**:\n```\nSSE connection closed successfully on REPLICA pod\n```\n\n**Effect**:\n- Closes the user's SSE connection\n- Removes emitter from in-memory map\n- Client receives connection closed event\n\n**Use Case**:\n- Manual connection cleanup\n- Testing reconnection scenarios\n- Simulating connection failures"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for managing and monitoring SSE connections."
+		},
+		{
+			"name": "Health Check",
+			"item": [
+				{
+					"name": "Health Check",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Service is UP\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql('UP');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/actuator/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"actuator",
+								"health"
+							]
+						},
+						"description": "Check if the replica service is running and healthy.\n\n**Response**:\n```json\n{\n  \"status\": \"UP\"\n}\n```"
+					},
+					"response": []
+				}
+			],
+			"description": "Health check endpoints for service monitoring."
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:9082",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "test-user-123",
+			"type": "string"
+		}
+	]
+}
+

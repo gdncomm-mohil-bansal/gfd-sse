@@ -1,0 +1,35 @@
+package com.gfd_sse.dummyoff2onredisreplica.config;
+
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Contact;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.info.License;
+import io.swagger.v3.oas.models.servers.Server;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
+
+@Configuration
+public class SwaggerConfig {
+
+    @Bean
+    public OpenAPI customOpenAPI() {
+        return new OpenAPI()
+                .info(new Info()
+                        .title("Dummy Off2On Redis Replica API")
+                        .version("1.0.0")
+                        .description(
+                                "API documentation for Replica service - Testing/demonstration service to understand SSE behavior across multiple pods. "
+                                        +
+                                        "⚠️ This is NOT for production use. It demonstrates why Redis Pub/Sub is necessary for distributed SSE architectures.")
+                        .contact(new Contact()
+                                .name("GFD SSE Team")
+                                .email("support@example.com"))
+                        .license(new License()
+                                .name("Apache 2.0")
+                                .url("https://www.apache.org/licenses/LICENSE-2.0.html")))
+                .servers(List.of(
+                        new Server().url("http://localhost:9082").description("Replica Pod Server")));
+    }
+}
