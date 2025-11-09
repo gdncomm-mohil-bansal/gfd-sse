@@ -10,10 +10,14 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import jakarta.annotation.PreDestroy;
 import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class SSEService {
@@ -28,7 +32,7 @@ public class SSEService {
 
     private final ObjectMapper objectMapper;
 
-    // Store SSE emitters by userId
+    // Store SSE emitters by sourceId (Front-liner's device ID)
     private final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
 
     public SSEService(ObjectMapper objectMapper) {
@@ -36,13 +40,15 @@ public class SSEService {
     }
 
     /**
-     * Create and register a new SSE emitter for a user
+     * Create and register a new SSE emitter for a device (sourceId)
+     * 
+     * @param sourceId Front-liner's device ID
      */
-    public SseEmitter createEmitter(String userId) {
-        logger.info("Creating SSE emitter for user: {}", userId);
+    public SseEmitter createEmitter(String sourceId) {
+        logger.info("Creating SSE emitter for sourceId: {}", sourceId);
 
         // Remove existing emitter if present
-        removeEmitter(userId);
+        removeEmitter(sourceId);
 
         // Create new emitter with timeout
         long timeout = sseTimeoutMinutes * 60 * 1000L;
@@ -50,39 +56,41 @@ public class SSEService {
 
         // Setup completion callback
         emitter.onCompletion(() -> {
-            logger.info("SSE connection completed for user: {}", userId);
-            emitters.remove(userId);
+            logger.info("SSE connection completed for sourceId: {}", sourceId);
+            emitters.remove(sourceId);
         });
 
         // Setup timeout callback
         emitter.onTimeout(() -> {
-            logger.warn("SSE connection timeout for user: {}", userId);
-            emitters.remove(userId);
+            logger.warn("SSE connection timeout for sourceId: {}", sourceId);
+            emitters.remove(sourceId);
         });
 
         // Setup error callback
         emitter.onError((error) -> {
-            logger.error("SSE connection error for user: {}", userId, error);
-            emitters.remove(userId);
+            logger.error("SSE connection error for sourceId: {}", sourceId, error);
+            emitters.remove(sourceId);
         });
 
         // Store emitter
-        emitters.put(userId, emitter);
+        emitters.put(sourceId, emitter);
 
         // Send connection established event
-        sendConnectionEstablishedEvent(userId);
+        sendConnectionEstablishedEvent(sourceId);
 
-        logger.info("SSE emitter created and registered for user: {}", userId);
+        logger.info("SSE emitter created and registered for sourceId: {}", sourceId);
         return emitter;
     }
 
     /**
-     * Send event to a specific user
+     * Send event to a specific device (sourceId)
+     * 
+     * @param sourceId Front-liner's device ID
      */
-    public void sendEventToUser(String userId, CartEvent event) {
-        SseEmitter emitter = emitters.get(userId);
+    public void sendEventToUser(String sourceId, CartEvent event) {
+        SseEmitter emitter = emitters.get(sourceId);
         if (emitter == null) {
-            logger.debug("No SSE emitter found for user: {}", userId);
+            logger.debug("No SSE emitter found for sourceId: {}", sourceId);
             return;
         }
 
@@ -93,45 +101,49 @@ public class SSEService {
                     .name(event.getEventType().name())
                     .data(eventJson));
 
-            logger.info("Sent event {} to user {}", event.getEventType(), userId);
+            logger.info("Sent event {} to sourceId {}", event.getEventType(), sourceId);
         } catch (IOException e) {
-            logger.error("Error sending event to user: {}", userId, e);
-            removeEmitter(userId);
+            logger.error("Error sending event to sourceId: {}", sourceId, e);
+            removeEmitter(sourceId);
         } catch (Exception e) {
-            logger.error("Unexpected error sending event to user: {}", userId, e);
+            logger.error("Unexpected error sending event to sourceId: {}", sourceId, e);
         }
     }
 
     /**
-     * Broadcast event to all connected users
+     * Broadcast event to all connected devices
      */
     public void broadcastEvent(CartEvent event) {
-        logger.info("Broadcasting event {} to {} connected users",
+        logger.info("Broadcasting event {} to {} connected devices",
                 event.getEventType(), emitters.size());
 
-        emitters.forEach((userId, emitter) -> sendEventToUser(userId, event));
+        emitters.forEach((sourceId, emitter) -> sendEventToUser(sourceId, event));
     }
 
     /**
-     * Remove emitter for a user
+     * Remove emitter for a device (sourceId)
+     * 
+     * @param sourceId Front-liner's device ID
      */
-    public void removeEmitter(String userId) {
-        SseEmitter emitter = emitters.remove(userId);
+    public void removeEmitter(String sourceId) {
+        SseEmitter emitter = emitters.remove(sourceId);
         if (emitter != null) {
             try {
                 emitter.complete();
-                logger.info("Removed and completed SSE emitter for user: {}", userId);
+                logger.info("Removed and completed SSE emitter for sourceId: {}", sourceId);
             } catch (Exception e) {
-                logger.error("Error completing emitter for user: {}", userId, e);
+                logger.error("Error completing emitter for sourceId: {}", sourceId, e);
             }
         }
     }
 
     /**
-     * Check if user has an active connection
+     * Check if device has an active connection
+     * 
+     * @param sourceId Front-liner's device ID
      */
-    public boolean hasActiveConnection(String userId) {
-        return emitters.containsKey(userId);
+    public boolean hasActiveConnection(String sourceId) {
+        return emitters.containsKey(sourceId);
     }
 
     /**
@@ -144,20 +156,20 @@ public class SSEService {
     /**
      * Send connection established event
      */
-    private void sendConnectionEstablishedEvent(String userId) {
+    private void sendConnectionEstablishedEvent(String sourceId) {
         CartEvent event = CartEvent.builder()
                 .eventId(UUID.randomUUID().toString())
                 .eventType(EventType.CONNECTION_ESTABLISHED)
-                .userId(userId)
+                .sourceId(sourceId)
                 .timestamp(System.currentTimeMillis())
                 .message("SSE connection established successfully")
                 .build();
 
-        sendEventToUser(userId, event);
+        sendEventToUser(sourceId, event);
     }
 
     /**
-     * Send heartbeat to all connected clients
+     * Send heartbeat to all connected devices
      * This keeps the connection alive and helps detect dead connections
      */
     @Scheduled(fixedDelayString = "${sse.keepalive.interval.seconds}000")
@@ -166,17 +178,17 @@ public class SSEService {
             return;
         }
 
-        logger.debug("Sending heartbeat to {} connected users", emitters.size());
+        logger.debug("Sending heartbeat to {} connected devices", emitters.size());
 
-        emitters.forEach((userId, emitter) -> {
+        emitters.forEach((sourceId, emitter) -> {
             try {
                 emitter.send(SseEmitter.event()
                         .name("heartbeat")
                         .data("ping"));
-                logger.trace("Heartbeat sent to user: {}", userId);
+                logger.trace("Heartbeat sent to sourceId: {}", sourceId);
             } catch (IOException e) {
-                logger.warn("Failed to send heartbeat to user: {}. Removing connection.", userId);
-                removeEmitter(userId);
+                logger.warn("Failed to send heartbeat to sourceId: {}. Removing connection.", sourceId);
+                removeEmitter(sourceId);
             }
         });
     }

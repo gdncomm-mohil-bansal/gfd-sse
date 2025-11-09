@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/otp")
-@CrossOrigin(origins = "*")
 public class OTPController {
 
     private static final Logger logger = LoggerFactory.getLogger(OTPController.class);

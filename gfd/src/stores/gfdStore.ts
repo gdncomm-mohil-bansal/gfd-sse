@@ -7,7 +7,7 @@ export const useGFDStore = defineStore('gfd', () => {
   // State
   const connectionState = ref<ConnectionState>({
     isConnected: false,
-    userId: null,
+    userId: null, // Deprecated: keeping for backward compatibility
     error: null
   })
 
@@ -30,7 +30,7 @@ export const useGFDStore = defineStore('gfd', () => {
 
   // Computed
   const isConnected = computed(() => connectionState.value.isConnected)
-  const userId = computed(() => connectionState.value.userId)
+  const userId = computed(() => connectionState.value.userId) // Deprecated
   const connectionError = computed(() => connectionState.value.error)
   const hasVoucher = computed(() => appliedVoucher.value !== null)
   const hasDiscount = computed(() => appliedDiscount.value !== null)
@@ -59,19 +59,16 @@ export const useGFDStore = defineStore('gfd', () => {
     API_BASE_URL.value = url
   }
 
-  function connect(userId: string, otp: string) {
+  function connect(otp: string) {
     connectionState.value.error = null
 
     sseService.connect(
-      userId,
       otp,
       API_BASE_URL.value,
       handleSSEMessage,
       handleSSEError,
       handleConnectionEstablished
     )
-
-    connectionState.value.userId = userId
   }
 
   function handleConnectionEstablished() {
@@ -205,16 +202,10 @@ export const useGFDStore = defineStore('gfd', () => {
   }
 
   async function disconnect() {
-    if (connectionState.value.userId) {
       try {
-        await sseService.disconnectFromServer(
-          connectionState.value.userId,
-          API_BASE_URL.value
-        )
+      await sseService.disconnectFromServer(API_BASE_URL.value)
       } catch (error) {
         console.error('Error during disconnect:', error)
-      }
-    } else {
       sseService.disconnect()
     }
 

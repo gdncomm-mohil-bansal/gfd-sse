@@ -24,18 +24,6 @@
 
       <form @submit.prevent="handleConnect" class="connection-form">
         <div class="form-group">
-          <label for="userId">Session ID</label>
-          <input
-            id="userId"
-            v-model="formData.userId"
-            type="text"
-            placeholder="Enter your session ID"
-            required
-            :disabled="isConnecting"
-          />
-        </div>
-
-        <div class="form-group">
           <label for="otp">6-Digit Code</label>
           <input
             id="otp"
@@ -48,8 +36,9 @@
             required
             :disabled="isConnecting"
             class="otp-input"
+            autofocus
           />
-          <small>Enter the 6-digit code shown on the POS terminal</small>
+          <small>Enter the 6-digit code shown on the Front-liner's device</small>
         </div>
 
         <div v-if="error" class="error-message">
@@ -83,39 +72,48 @@
           <strong>How to connect:</strong>
         </p>
         <ol>
-          <li>Ask the cashier to generate a display code</li>
-          <li>Enter your Session ID and the 6-digit code shown</li>
-          <li>Click Connect to start viewing your cart in real-time</li>
+          <li>Ask the Front-liner to generate a connection code</li>
+          <li>Enter the 6-digit code displayed on their device</li>
+          <li>Click Connect to start viewing the cart in real-time</li>
         </ol>
+        <p class="device-info">
+          <small>
+            <strong>Device ID:</strong> {{ deviceId }}
+          </small>
+        </p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useGFDStore } from '@/stores/gfdStore'
 import { storeToRefs } from 'pinia'
+import { sseService } from '@/services/sseService'
 
 const gfdStore = useGFDStore()
 const { connectionError } = storeToRefs(gfdStore)
 
 const formData = ref({
-  userId: '',
   otp: ''
 })
 
 const isConnecting = ref(false)
 const error = ref<string | null>(null)
+const deviceId = ref<string>('')
+
+onMounted(() => {
+  // Get the deviceId to display to the user
+  // Initialize the deviceId by calling the service
+  sseService.connect(null, '', () => {}, () => {}, () => {})
+  sseService.disconnect()
+  deviceId.value = sseService.getStoredDeviceId() || 'Generating...'
+})
 
 const handleConnect = async () => {
   error.value = null
   gfdStore.clearError()
-
-  if (!formData.value.userId.trim()) {
-    error.value = 'Please enter your Session ID'
-    return
-  }
 
   if (!formData.value.otp.trim() || formData.value.otp.length !== 6) {
     error.value = 'Please enter a valid 6-digit code'
@@ -125,7 +123,7 @@ const handleConnect = async () => {
   isConnecting.value = true
 
   try {
-    gfdStore.connect(formData.value.userId.trim(), formData.value.otp.trim())
+    gfdStore.connect(formData.value.otp.trim())
 
     // Wait a bit to see if connection succeeds
     await new Promise((resolve) => setTimeout(resolve, 2000))
@@ -349,6 +347,19 @@ small {
 
 .info-section li:last-child {
   margin-bottom: 0;
+}
+
+.device-info {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+.device-info small {
+  color: #a0aec0;
+  font-family: monospace;
+  font-size: 11px;
 }
 </style>
 

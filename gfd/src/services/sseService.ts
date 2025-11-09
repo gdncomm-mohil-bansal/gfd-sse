@@ -5,10 +5,40 @@ export class SSEService {
   private reconnectAttempts = 0
   private maxReconnectAttempts = 3
   private reconnectDelay = 2000
+  private deviceId: string = ''
+
+  /**
+   * Get or create deviceId for this GFD device
+   */
+  private getDeviceId(): string {
+    if (this.deviceId) {
+      return this.deviceId
+    }
+
+    // Try to get from cookie
+    const cookie = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('deviceId='))
+
+    if (cookie) {
+      this.deviceId = cookie.split('=')[1]
+      return this.deviceId
+    }
+
+    // Generate new deviceId
+    this.deviceId = `gfd-device-${Date.now()}-${Math.random().toString(36).substring(7)}`
+
+    // Set cookie (expires in 30 days)
+    const expiryDate = new Date()
+    expiryDate.setDate(expiryDate.getDate() + 30)
+    document.cookie = `deviceId=${this.deviceId}; expires=${expiryDate.toUTCString()}; path=/; SameSite=Lax`
+
+    console.log('Generated new deviceId:', this.deviceId)
+    return this.deviceId
+  }
 
   connect(
-    userId: string,
-    otp: string,
+    otp: string | null,
     baseUrl: string,
     onMessage: (event: CartEvent) => void,
     onError: (error: string) => void,
@@ -17,11 +47,19 @@ export class SSEService {
     // Close existing connection if any
     this.disconnect()
 
-    const url = `${baseUrl}/api/sse/connect?userId=${encodeURIComponent(userId)}&otp=${encodeURIComponent(otp)}`
+    // Ensure we have a deviceId
+    const deviceId = this.getDeviceId()
 
-    console.log('Connecting to SSE:', url)
+    // Build URL with optional OTP
+    let url = `${baseUrl}/api/sse/connect`
+    if (otp) {
+      url += `?otp=${encodeURIComponent(otp)}`
+    }
 
-    this.eventSource = new EventSource(url)
+    console.log('Connecting to SSE:', url, 'with deviceId:', deviceId)
+
+    // EventSource with credentials to send cookies
+    this.eventSource = new EventSource(url, { withCredentials: true })
 
     this.eventSource.onopen = () => {
       console.log('SSE connection opened')
@@ -81,7 +119,8 @@ export class SSEService {
 
       if (this.eventSource?.readyState === EventSource.CLOSED) {
         onError('Connection closed by server')
-        this.handleReconnect(userId, otp, baseUrl, onMessage, onError, onConnectionEstablished)
+        // Try to reconnect without OTP (using existing device mapping)
+        this.handleReconnect(null, baseUrl, onMessage, onError, onConnectionEstablished)
       } else if (this.eventSource?.readyState === EventSource.CONNECTING) {
         console.log('SSE reconnecting...')
       }
@@ -89,8 +128,7 @@ export class SSEService {
   }
 
   private handleReconnect(
-    userId: string,
-    otp: string,
+    otp: string | null,
     baseUrl: string,
     onMessage: (event: CartEvent) => void,
     onError: (error: string) => void,
@@ -101,11 +139,12 @@ export class SSEService {
       console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`)
 
       setTimeout(() => {
-        this.connect(userId, otp, baseUrl, onMessage, onError, onConnectionEstablished)
+        // Reconnect without OTP (will use existing device mapping)
+        this.connect(null, baseUrl, onMessage, onError, onConnectionEstablished)
       }, this.reconnectDelay)
     } else {
       console.log('Max reconnect attempts reached')
-      onError('Connection lost. Please reconnect with a new OTP.')
+      onError('Connection lost. Please enter OTP again to reconnect.')
     }
   }
 
@@ -122,10 +161,11 @@ export class SSEService {
     return this.eventSource !== null && this.eventSource.readyState === EventSource.OPEN
   }
 
-  async disconnectFromServer(userId: string, baseUrl: string): Promise<void> {
+  async disconnectFromServer(baseUrl: string): Promise<void> {
     try {
-      const response = await fetch(`${baseUrl}/api/sse/disconnect/${userId}`, {
-        method: 'POST'
+      const response = await fetch(`${baseUrl}/api/sse/disconnect`, {
+        method: 'POST',
+        credentials: 'include' // Send cookies
       })
 
       if (!response.ok) {
@@ -139,6 +179,10 @@ export class SSEService {
     } finally {
       this.disconnect()
     }
+  }
+
+  getStoredDeviceId(): string | null {
+    return this.deviceId || null
   }
 }
 

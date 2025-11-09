@@ -21,6 +21,7 @@ public class RedisSubscriberService {
 
     /**
      * Handle cart events from Redis
+     * Routes events based on sourceId (Front-liner's device ID)
      */
     public void handleCartEvent(String message) {
         logger.info("Received cart event from Redis: {}", message);
@@ -28,20 +29,21 @@ public class RedisSubscriberService {
         try {
             CartEvent event = objectMapper.readValue(message, CartEvent.class);
 
-            logger.debug("Parsed cart event: eventType={}, userId={}",
-                    event.getEventType(), event.getUserId());
+            logger.debug("Parsed cart event: eventType={}, sourceId={}",
+                    event.getEventType(), event.getSourceId());
 
-            // Send event to the specific user if they have an active SSE connection
-            if (event.getUserId() != null && !event.getUserId().isEmpty()) {
-                if (sseService.hasActiveConnection(event.getUserId())) {
-                    sseService.sendEventToUser(event.getUserId(), event);
-                    logger.info("Forwarded cart event to user: {}", event.getUserId());
+            // Route event based on sourceId (device-to-device mapping)
+            String sourceId = event.getSourceId();
+
+            if (sourceId != null && !sourceId.trim().isEmpty()) {
+                if (sseService.hasActiveConnection(sourceId)) {
+                    sseService.sendEventToUser(sourceId, event);
+                    logger.info("Forwarded cart event to sourceId: {}", sourceId);
                 } else {
-                    logger.debug("User {} has no active SSE connection. Event not forwarded.",
-                            event.getUserId());
+                    logger.debug("SourceId {} has no active SSE connection. Event not forwarded.", sourceId);
                 }
             } else {
-                logger.warn("Received cart event without userId. Cannot forward to SSE.");
+                logger.warn("Received cart event without sourceId. Cannot route to GFD. Event: {}", event);
             }
 
         } catch (Exception e) {
@@ -51,6 +53,7 @@ public class RedisSubscriberService {
 
     /**
      * Handle checkout events from Redis
+     * Routes events based on sourceId (Front-liner's device ID)
      */
     public void handleCheckoutEvent(String message) {
         logger.info("Received checkout event from Redis: {}", message);
@@ -58,20 +61,21 @@ public class RedisSubscriberService {
         try {
             CartEvent event = objectMapper.readValue(message, CartEvent.class);
 
-            logger.debug("Parsed checkout event: eventType={}, userId={}",
-                    event.getEventType(), event.getUserId());
+            logger.debug("Parsed checkout event: eventType={}, sourceId={}",
+                    event.getEventType(), event.getSourceId());
 
-            // Send event to the specific user if they have an active SSE connection
-            if (event.getUserId() != null && !event.getUserId().isEmpty()) {
-                if (sseService.hasActiveConnection(event.getUserId())) {
-                    sseService.sendEventToUser(event.getUserId(), event);
-                    logger.info("Forwarded checkout event to user: {}", event.getUserId());
+            // Route event based on sourceId (device-to-device mapping)
+            String sourceId = event.getSourceId();
+
+            if (sourceId != null && !sourceId.trim().isEmpty()) {
+                if (sseService.hasActiveConnection(sourceId)) {
+                    sseService.sendEventToUser(sourceId, event);
+                    logger.info("Forwarded checkout event to sourceId: {}", sourceId);
                 } else {
-                    logger.debug("User {} has no active SSE connection. Event not forwarded.",
-                            event.getUserId());
+                    logger.debug("SourceId {} has no active SSE connection. Event not forwarded.", sourceId);
                 }
             } else {
-                logger.warn("Received checkout event without userId. Cannot forward to SSE.");
+                logger.warn("Received checkout event without sourceId. Cannot route to GFD. Event: {}", event);
             }
 
         } catch (Exception e) {
@@ -81,6 +85,7 @@ public class RedisSubscriberService {
 
     /**
      * Handle product events from Redis
+     * Routes events based on sourceId (Front-liner's device ID)
      */
     public void handleProductEvent(String message) {
         logger.info("Received product event from Redis: {}", message);
@@ -88,20 +93,21 @@ public class RedisSubscriberService {
         try {
             CartEvent event = objectMapper.readValue(message, CartEvent.class);
 
-            logger.debug("Parsed product event: eventType={}, userId={}",
-                    event.getEventType(), event.getUserId());
+            logger.debug("Parsed product event: eventType={}, sourceId={}",
+                    event.getEventType(), event.getSourceId());
 
-            // Send event to the specific user if they have an active SSE connection
-            if (event.getUserId() != null && !event.getUserId().isEmpty()) {
-                if (sseService.hasActiveConnection(event.getUserId())) {
-                    sseService.sendEventToUser(event.getUserId(), event);
-                    logger.info("Forwarded product event to user: {}", event.getUserId());
+            // Route event based on sourceId (device-to-device mapping)
+            String sourceId = event.getSourceId();
+
+            if (sourceId != null && !sourceId.trim().isEmpty()) {
+                if (sseService.hasActiveConnection(sourceId)) {
+                    sseService.sendEventToUser(sourceId, event);
+                    logger.info("Forwarded product event to sourceId: {}", sourceId);
                 } else {
-                    logger.debug("User {} has no active SSE connection. Event not forwarded.",
-                            event.getUserId());
+                    logger.debug("SourceId {} has no active SSE connection. Event not forwarded.", sourceId);
                 }
             } else {
-                logger.warn("Received product event without userId. Cannot forward to SSE.");
+                logger.warn("Received product event without sourceId. Cannot route to GFD. Event: {}", event);
             }
 
         } catch (Exception e) {
