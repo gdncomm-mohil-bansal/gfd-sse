@@ -3,7 +3,7 @@
     <!-- Header with connection status -->
     <div class="header">
       <div class="store-info">
-        <div class="store-logo">
+        <div class="store-logo" @click="handleCartIconTap" title="Tap 7 times for admin options">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -23,18 +23,6 @@
           <p class="session-id">Session ID: {{ userId }}</p>
         </div>
       </div>
-
-      <button @click="handleDisconnect" class="disconnect-button">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-          />
-        </svg>
-        <span class="disconnect-text">Disconnect</span>
-      </button>
     </div>
 
     <!-- Connection status badge -->
@@ -152,8 +140,12 @@ const {
   calculatedSubtotal
 } = storeToRefs(gfdStore)
 
-const handleDisconnect = () => {
-  gfdStore.disconnect()
+/**
+ * Handle cart icon tap for admin disconnect feature
+ * Requires 7 taps within 2 seconds to open admin dialog
+ */
+const handleCartIconTap = () => {
+  gfdStore.handleCartIconTap()
 }
 
 const formatPrice = (price: number): string => {
@@ -192,6 +184,18 @@ const formatPrice = (price: number): string => {
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.store-logo:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.35);
+}
+
+.store-logo:active {
+  transform: scale(0.95);
 }
 
 .store-logo svg {
@@ -213,37 +217,6 @@ const formatPrice = (price: number): string => {
   color: #9ca3af;
   margin: 0;
   font-weight: 500;
-}
-
-.disconnect-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: white;
-  border: 1.5px solid #e5e7eb;
-  border-radius: 10px;
-  color: #6b7280;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.disconnect-button svg {
-  width: 18px;
-  height: 18px;
-}
-
-.disconnect-button:hover {
-  border-color: #d1d5db;
-  background: #f9fafb;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-}
-
-.disconnect-button:active {
-  transform: translateY(0);
 }
 
 .status-bar {

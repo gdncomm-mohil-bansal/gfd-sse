@@ -65,6 +65,27 @@
             Connecting...
           </span>
         </button>
+
+        <button type="button" class="reconnect-button" :disabled="isConnecting" @click="handleReconnect">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
+          </svg>
+          <span v-if="!isConnecting">Reconnect</span>
+          <span v-else class="connecting">
+            <span class="spinner"></span>
+            Reconnecting...
+          </span>
+        </button>
       </form>
 
       <div class="info-section">
@@ -75,6 +96,7 @@
           <li>Ask the Front-liner to generate a connection code</li>
           <li>Enter the 6-digit code displayed on their device</li>
           <li>Click Connect to start viewing the cart in real-time</li>
+          <li>Or click Reconnect if you were previously connected</li>
         </ol>
         <p class="device-info">
           <small>
@@ -134,6 +156,27 @@ const handleConnect = async () => {
     }
   } catch (err: any) {
     error.value = err.message || 'Failed to connect. Please try again.'
+    isConnecting.value = false
+  }
+}
+
+const handleReconnect = async () => {
+  error.value = null
+  gfdStore.clearError()
+  isConnecting.value = true
+
+  try {
+    gfdStore.reconnect()
+
+    // Wait a bit to see if connection succeeds
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+
+    if (connectionError.value) {
+      error.value = connectionError.value
+      isConnecting.value = false
+    }
+  } catch (err: any) {
+    error.value = err.message || 'Reconnection failed. Please enter OTP for first-time connection.'
     isConnecting.value = false
   }
 }
@@ -256,17 +299,37 @@ small {
   font-size: 13px;
 }
 
-.connect-button {
+.connect-button,
+.reconnect-button {
   width: 100%;
   padding: 14px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
   border: none;
   border-radius: 10px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.connect-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  margin-bottom: 12px;
+}
+
+.reconnect-button {
+  background: white;
+  color: #667eea;
+  border: 2px solid #667eea;
+}
+
+.reconnect-button svg {
+  width: 18px;
+  height: 18px;
 }
 
 .connect-button:hover:not(:disabled) {
@@ -274,11 +337,19 @@ small {
   box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
 }
 
-.connect-button:active:not(:disabled) {
+.reconnect-button:hover:not(:disabled) {
+  background: #f3f4f6;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(102, 126, 234, 0.2);
+}
+
+.connect-button:active:not(:disabled),
+.reconnect-button:active:not(:disabled) {
   transform: translateY(0);
 }
 
-.connect-button:disabled {
+.connect-button:disabled,
+.reconnect-button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }

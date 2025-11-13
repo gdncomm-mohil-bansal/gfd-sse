@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
@@ -24,13 +25,15 @@ public class GfdDeviceMapping {
     private String id;
 
     /**
-     * Source device ID (Front-liner's device)
+     * Source device ID (Front-liner's device) - unique index
      */
+    @Indexed(unique = true, sparse = true)
     private String sourceId;
 
     /**
-     * Destination device ID (GFD PWA device)
+     * Destination device ID (GFD PWA device) - unique index
      */
+    @Indexed(unique = true, sparse = true)
     private String destinationId;
 
     /**
@@ -39,7 +42,7 @@ public class GfdDeviceMapping {
     private boolean isActive;
 
     /**
-     * OTP for device connection
+     * OTP for device connection (nullable to prevent '000000' connections)
      */
-    private long otp;
+    private Long otp;
 }

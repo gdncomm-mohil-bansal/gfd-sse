@@ -16,10 +16,10 @@ public interface GfdDeviceMappingRepository extends MongoRepository<GfdDeviceMap
     /**
      * Find device mapping by OTP
      *
-     * @param otp the OTP generated for device connection
+     * @param otp the OTP generated for device connection (nullable)
      * @return Optional containing the device mapping if found
      */
-    Optional<GfdDeviceMapping> findByOtp(long otp);
+    Optional<GfdDeviceMapping> findByOtp(Long otp);
 
     /**
      * Find device mapping by source device ID

@@ -10,14 +10,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import jakarta.annotation.PreDestroy;
 import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 @Service
 public class SSEService {
@@ -191,5 +187,34 @@ public class SSEService {
                 removeEmitter(sourceId);
             }
         });
+    }
+
+    /**
+     * Send disconnect confirmation event to GFD before closing connection
+     * 
+     * @param sourceId Front-liner's device ID
+     */
+    public void sendDisconnectConfirmation(String sourceId) {
+        CartEvent event = CartEvent.builder()
+                .eventId(UUID.randomUUID().toString())
+                .eventType(EventType.GFD_DISCONNECTED)
+                .sourceId(sourceId)
+                .timestamp(System.currentTimeMillis())
+                .message("GFD connection disconnected by Front-liner")
+                .build();
+
+        sendEventToUser(sourceId, event);
+        logger.info("Sent disconnect confirmation to sourceId: {}", sourceId);
+    }
+
+    /**
+     * Disconnect SSE connection by sourceId
+     * This is called when disconnect event is received from off2on service
+     * 
+     * @param sourceId Front-liner's device ID
+     */
+    public void disconnectBySourceId(String sourceId) {
+        logger.info("Disconnecting SSE connection for sourceId: {}", sourceId);
+        removeEmitter(sourceId);
     }
 }

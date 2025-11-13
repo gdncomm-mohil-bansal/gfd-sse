@@ -28,6 +28,14 @@ export const useGFDStore = defineStore('gfd', () => {
   // API Base URL - configure this based on your backend
   const API_BASE_URL = ref('http://localhost:8081')
 
+  // Connection attempt tracking (to prevent multiple simultaneous calls)
+  const connectionAttemptInProgress = ref<boolean>(false)
+
+  // Admin disconnect feature state
+  const cartIconTapCount = ref<number>(0)
+  const lastCartIconTapTime = ref<number | null>(null)
+  const showAdminDialog = ref<boolean>(false)
+
   // Computed
   const isConnected = computed(() => connectionState.value.isConnected)
   const userId = computed(() => connectionState.value.userId) // Deprecated
@@ -60,7 +68,14 @@ export const useGFDStore = defineStore('gfd', () => {
   }
 
   function connect(otp: string) {
+    // Prevent multiple simultaneous connection attempts
+    if (connectionAttemptInProgress.value) {
+      console.warn('Connection attempt already in progress')
+      return
+    }
+
     connectionState.value.error = null
+    connectionAttemptInProgress.value = true
 
     sseService.connect(
       otp,
@@ -71,9 +86,30 @@ export const useGFDStore = defineStore('gfd', () => {
     )
   }
 
+  function reconnect() {
+    // Prevent multiple simultaneous connection attempts
+    if (connectionAttemptInProgress.value) {
+      console.warn('Connection attempt already in progress')
+      return
+    }
+
+    connectionState.value.error = null
+    connectionAttemptInProgress.value = true
+
+    // Connect without OTP - will use existing device mapping
+    sseService.connect(
+      null,
+      API_BASE_URL.value,
+      handleSSEMessage,
+      handleSSEError,
+      handleConnectionEstablished
+    )
+  }
+
   function handleConnectionEstablished() {
     connectionState.value.isConnected = true
     connectionState.value.error = null
+    connectionAttemptInProgress.value = false
     console.log('Connection established successfully')
   }
 
@@ -196,9 +232,37 @@ export const useGFDStore = defineStore('gfd', () => {
     }
   }
 
+  // function handleSSEError(error: string) {
+  //   connectionState.value.error = error
+  //   connectionState.value.isConnected = false
+  //   connectionAttemptInProgress.value = false
+  // }
   function handleSSEError(error: string) {
-    connectionState.value.error = error
-    connectionState.value.isConnected = false
+    // Treat server-initiated disconnects as graceful resets
+    if (error === 'Disconnected by Front-liner' || error === 'Connection closed by server') {
+      console.log('Server-initiated disconnect:', error)
+      connectionState.value.error = null
+      connectionState.value.isConnected = false
+      connectionAttemptInProgress.value = false
+
+      // Reset all state so UI returns to connection screen cleanly
+      cartItems.value = []
+      totalAmount.value = 0
+      totalItems.value = 0
+      lastMessage.value = error
+      lastEventType.value = null
+      isCheckoutMode.value = false
+      checkoutData.value = null
+      appliedVoucher.value = null
+      appliedDiscount.value = null
+      originalAmount.value = 0
+      subtotalAmount.value = 0
+    } else {
+      // This is an actual error
+      connectionState.value.error = error
+      connectionState.value.isConnected = false
+      connectionAttemptInProgress.value = false
+    }
   }
 
   async function disconnect() {
@@ -226,10 +290,63 @@ export const useGFDStore = defineStore('gfd', () => {
     appliedDiscount.value = null
     originalAmount.value = 0
     subtotalAmount.value = 0
+    connectionAttemptInProgress.value = false
+    cartIconTapCount.value = 0
+    lastCartIconTapTime.value = null
   }
 
   function clearError() {
     connectionState.value.error = null
+  }
+
+  /**
+   * Handle cart icon tap for admin disconnect feature
+   * Requires 7 taps within 2 seconds to open admin dialog
+   */
+  function handleCartIconTap() {
+    const now = Date.now()
+    const tapTimeout = 2000 // 2 seconds window for 7 taps
+
+    // Reset count if last tap was more than 2 seconds ago
+    if (lastCartIconTapTime.value && (now - lastCartIconTapTime.value) > tapTimeout) {
+      cartIconTapCount.value = 0
+    }
+
+    cartIconTapCount.value++
+    lastCartIconTapTime.value = now
+
+    console.log(`Cart icon tap count: ${cartIconTapCount.value}`)
+
+    // Open admin dialog after 7 taps
+    if (cartIconTapCount.value >= 7) {
+      showAdminDialog.value = true
+      cartIconTapCount.value = 0 // Reset count
+    }
+  }
+
+  /**
+   * Verify admin passcode and disconnect
+   * @param passcode - Admin passcode
+   * @returns True if passcode is correct
+   */
+  function verifyAdminPasscode(passcode: string): boolean {
+    const correctPasscode = '#Admin007'
+
+    if (passcode === correctPasscode) {
+      disconnect()
+      showAdminDialog.value = false
+      return true
+    }
+
+    return false
+  }
+
+  /**
+   * Close admin dialog
+   */
+  function closeAdminDialog() {
+    showAdminDialog.value = false
+    cartIconTapCount.value = 0
   }
 
   return {
@@ -247,6 +364,8 @@ export const useGFDStore = defineStore('gfd', () => {
     originalAmount,
     subtotalAmount,
     API_BASE_URL,
+    connectionAttemptInProgress,
+    showAdminDialog,
 
     // Computed
     isConnected,
@@ -260,8 +379,12 @@ export const useGFDStore = defineStore('gfd', () => {
     // Actions
     setApiBaseUrl,
     connect,
+    reconnect,
     disconnect,
-    clearError
+    clearError,
+    handleCartIconTap,
+    verifyAdminPasscode,
+    closeAdminDialog
   }
 })
 

@@ -1,6 +1,11 @@
 package com.gfd_sse.dummyoff2onredis.exception;
 
 import com.gfd_sse.dummyoff2onredis.dto.ApiResponse;
+
+
+import io.swagger.v3.oas.annotations.Hidden;
+
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -9,53 +14,45 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 
-@ControllerAdvice
-public class GlobalExceptionHandler {
+@Hidden @ControllerAdvice public class GlobalExceptionHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+  private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    /**
-     * Handle all generic exceptions
-     */
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse> handleGlobalException(Exception ex, WebRequest request) {
-        logger.error("Global exception handler caught exception: ", ex);
+  /**
+   * Handle illegal argument exceptions
+   */
+  @ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity<ApiResponse> handleIllegalArgumentException(IllegalArgumentException ex,
+      WebRequest request) {
+    logger.error("Illegal argument exception: ", ex);
+    ApiResponse response =
+        ApiResponse.builder().success(false).message("Invalid request: " + ex.getMessage()).build();
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+  }
 
-        ApiResponse response = ApiResponse.builder()
-                .success(false)
-                .message("An error occurred: " + ex.getMessage())
-                .build();
+  /**
+   * Handle specific business logic exception for invalid OTPs.
+   * Returns 401 Unauthorized.
+   */
+  @ExceptionHandler(InvalidOtpException.class)
+  public ResponseEntity<ApiResponse> handleInvalidOtpException(InvalidOtpException ex,
+      WebRequest request) {
+    logger.warn("Invalid OTP Exception: {}", ex.getMessage());
+    ApiResponse response =
+        ApiResponse.builder().success(false).message("Authentication failed: " + ex.getMessage())
+            .build();
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+  }
 
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-    }
-
-    /**
-     * Handle illegal argument exceptions
-     */
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiResponse> handleIllegalArgumentException(IllegalArgumentException ex, WebRequest request) {
-        logger.error("Illegal argument exception: ", ex);
-
-        ApiResponse response = ApiResponse.builder()
-                .success(false)
-                .message("Invalid request: " + ex.getMessage())
-                .build();
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-    }
-
-    /**
-     * Handle runtime exceptions
-     */
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ApiResponse> handleRuntimeException(RuntimeException ex, WebRequest request) {
-        logger.error("Runtime exception: ", ex);
-
-        ApiResponse response = ApiResponse.builder()
-                .success(false)
-                .message("Runtime error: " + ex.getMessage())
-                .build();
-
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-    }
+  /**
+   * A final catch-all for any other unexpected exceptions.
+   * Returns 500 Internal Server Error.
+   */
+  @ExceptionHandler(Exception.class) public ResponseEntity<ApiResponse> handleGlobalException(
+      Exception ex, WebRequest request) {
+    logger.error("An unexpected error occurred: ", ex);
+    ApiResponse response =
+        ApiResponse.builder().success(false).message("An internal server error occurred.").build();
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+  }
 }

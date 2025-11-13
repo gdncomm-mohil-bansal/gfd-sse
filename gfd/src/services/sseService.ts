@@ -21,8 +21,11 @@ export class SSEService {
       .find(row => row.startsWith('deviceId='))
 
     if (cookie) {
-      this.deviceId = cookie.split('=')[1]
+      const cookieValue = cookie.split('=')[1]
+      if (cookieValue) {
+        this.deviceId = cookieValue
       return this.deviceId
+      }
     }
 
     // Generate new deviceId
@@ -93,15 +96,22 @@ export class SSEService {
       'CHECKOUT_CANCELLED',
       'CHECKOUT_COMPLETED',
       'CHECKOUT_FAILED',
-      'HEARTBEAT'
+      'HEARTBEAT',
+      'GFD_DISCONNECTED'
     ]
 
     eventTypes.forEach((eventType) => {
-      this.eventSource!.addEventListener(eventType, (event: any) => {
+      this.eventSource!.addEventListener(eventType, (event: MessageEvent) => {
         try {
           // Skip heartbeat events
           if (eventType === 'HEARTBEAT' || event.data === 'ping') {
             console.log('Received heartbeat')
+            return
+          }
+          if (eventType === 'GFD_DISCONNECTED') {
+            console.log('Received GFD disconnected event')
+            this.disconnect()
+            onError('Disconnected by Front-liner')
             return
           }
 
@@ -118,15 +128,28 @@ export class SSEService {
       console.error('SSE error:', error)
 
       if (this.eventSource?.readyState === EventSource.CLOSED) {
+        // Connection closed - report error but DO NOT auto-retry
+        // User must manually click Connect or Reconnect button
         onError('Connection closed by server')
-        // Try to reconnect without OTP (using existing device mapping)
-        this.handleReconnect(null, baseUrl, onMessage, onError, onConnectionEstablished)
+        // Close the connection to prevent any further retries
+        this.disconnect()
       } else if (this.eventSource?.readyState === EventSource.CONNECTING) {
-        console.log('SSE reconnecting...')
-      }
+        // Still connecting - wait for it to complete or fail
+        console.log('SSE connecting...')
+      } else {
+        // Connection failed - report error but DO NOT auto-retry
+        onError('Connection failed. Please try again.')
+        // Close the connection to prevent any further retries
+        this.disconnect()
     }
   }
+  }
 
+  /**
+   * @deprecated This method is no longer used for auto-reconnect.
+   * Auto-reconnect has been disabled - users must manually click Connect/Reconnect.
+   * This method is kept for backward compatibility but does nothing.
+   */
   private handleReconnect(
     otp: string | null,
     baseUrl: string,
@@ -134,18 +157,11 @@ export class SSEService {
     onError: (error: string) => void,
     onConnectionEstablished: () => void
   ): void {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++
-      console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`)
-
-      setTimeout(() => {
-        // Reconnect without OTP (will use existing device mapping)
-        this.connect(null, baseUrl, onMessage, onError, onConnectionEstablished)
-      }, this.reconnectDelay)
-    } else {
-      console.log('Max reconnect attempts reached')
-      onError('Connection lost. Please enter OTP again to reconnect.')
-    }
+    // Auto-reconnect disabled - user must manually click Connect/Reconnect button
+    // This prevents infinite retry loops when OTP is invalid or connection fails
+    console.log('Auto-reconnect disabled. User must manually click Connect/Reconnect.')
+    onError('Connection failed. Please click Connect or Reconnect to try again.')
+    this.disconnect()
   }
 
   disconnect(): void {
