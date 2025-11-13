@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    
+    <parent>
+        <groupId>com.gfd_sse</groupId>
+        <artifactId>dummy-off2on-redis</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+    
+    <artifactId>dummy-off2on-redis-app</artifactId>
+    <name>dummy-off2on-redis-app</name>
+    <description>Main application module - executable Spring Boot application</description>
+    
+    <dependencies>
+        <!-- Web module (includes controllers) -->
+        <dependency>
+            <groupId>com.gfd_sse</groupId>
+            <artifactId>dummy-off2on-redis-web</artifactId>
+        </dependency>
+        
+        <!-- Service Implementation module -->
+        <dependency>
+            <groupId>com.gfd_sse</groupId>
+            <artifactId>dummy-off2on-redis-service-impl</artifactId>
+        </dependency>
+        
+        <!-- Config module -->
+        <dependency>
+            <groupId>com.gfd_sse</groupId>
+            <artifactId>dummy-off2on-redis-config</artifactId>
+        </dependency>
+        
+        <!-- Model module -->
+        <dependency>
+            <groupId>com.gfd_sse</groupId>
+            <artifactId>dummy-off2on-redis-model</artifactId>
+        </dependency>
+        
+        <!-- Spring Boot Starter Web -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        
+        <!-- Spring Boot DevTools -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- Spring Boot Starter Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+        <resources>
+            <resource>
+                <directory>${basedir}/src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+    </build>
+</project>
